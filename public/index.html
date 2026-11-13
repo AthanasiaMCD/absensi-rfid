@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Admin Absensi RFID</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff3c4;--card:#fff;--tx:#000;--mut:#444;--bd:#000;--yel:#ffd93d;--pink:#ff6b9d;--cyan:#4ecdc4;--grn:#6bff8a;--org:#ff9f45;--red:#ff4d4d;--sh:5px 5px 0 #000}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);background-image:radial-gradient(#00000022 1.5px,transparent 1.5px);background-size:18px 18px;color:var(--tx);font:500 15px/1.45 'Space Grotesk',system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;background:var(--yel);border-bottom:4px solid #000;position:sticky;top:env(safe-area-inset-top,0);z-index:5}
+h1{font-size:18px;margin:0;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+h2{font-size:16px;margin:0 0 10px;font-weight:700;text-transform:uppercase;display:inline-block;background:var(--cyan);border:3px solid #000;padding:2px 8px}
+nav{display:flex;gap:8px;overflow-x:auto;padding:14px 14px 10px}nav button{white-space:nowrap}
+main{padding:0 14px 30px;max-width:980px;margin:auto}
+.card{background:var(--card);border:3px solid #000;box-shadow:var(--sh);padding:14px;margin-bottom:18px}
+button,input,select{font:inherit;color:#000}
+button{background:#fff;border:3px solid #000;box-shadow:3px 3px 0 #000;padding:8px 12px;cursor:pointer;font-weight:700;text-transform:uppercase;font-size:13px;transition:transform .08s,box-shadow .08s}
+button:hover{background:var(--yel)}
+button:active{transform:translate(3px,3px);box-shadow:0 0 0 #000}
+button.pri{background:var(--pink)}button.pri:hover{background:#ff8fb3}
+nav button.on{background:#000;color:var(--yel)}
+button.del{background:var(--red);color:#000}
+input,select{background:#fff;border:3px solid #000;padding:9px 10px;width:100%;border-radius:0;font-weight:500}
+input:focus,select:focus{outline:none;box-shadow:4px 4px 0 var(--pink)}
+input[type=file]{padding:8px;background:var(--bg)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}.row>*{flex:1;min-width:120px}.row>button{flex:0 0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
+.stat{border:3px solid #000;box-shadow:3px 3px 0 #000;padding:10px;text-align:center;font-weight:700;text-transform:uppercase;font-size:12px}
+.stat b{display:block;font-size:28px;line-height:1.1}
+.stat:nth-child(1){background:var(--cyan)}.stat:nth-child(2){background:var(--grn)}.stat:nth-child(3){background:var(--org)}.stat:nth-child(4){background:var(--pink)}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:8px 9px;border-bottom:2px solid #000;text-align:left;white-space:nowrap}
+th{background:#000;color:var(--yel);text-transform:uppercase;font-size:12px;letter-spacing:.5px}
+tr:nth-child(even) td{background:#fff9e0}
+.b{display:inline-block;padding:2px 8px;border:2px solid #000;font-size:12px;font-weight:700;text-transform:uppercase;color:#000}
+.b.ok{background:var(--grn)}.b.warn{background:var(--org)}.b.mut{background:#ddd}
+.chip{display:inline-block;margin:4px;padding:5px 10px;border:3px solid #000;background:var(--yel);box-shadow:3px 3px 0 #000;cursor:pointer;font-family:monospace;font-weight:700}
+.mut{color:var(--mut);font-size:13px}.hide{display:none!important}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#000;color:var(--yel);border:3px solid #fff;box-shadow:5px 5px 0 var(--pink);padding:10px 16px;z-index:9;max-width:90%;font-weight:700}
+#lg{max-width:380px;margin:12vh auto;padding:0 14px}#lg input{margin-bottom:12px}
+</style></head><body>
+
+<div id="lg" class="hide"><div class="card"><h2>Login Admin Absensi</h2>
+<form id="loginf"><input id="em" type="email" placeholder="Email" required><input id="pw" type="password" placeholder="Password" required>
+<button class="pri" style="width:100%">Masuk</button></form></div></div>
+
+<div id="app" class="hide">
+<header><h1>📚 Admin Absensi RFID</h1><button id="out">Keluar</button></header>
+<nav id="tabs"><button data-t="harian" class="on">Harian</button><button data-t="bulanan">Rekap Bulanan</button><button data-t="siswa">Siswa</button><button data-t="set">Pengaturan</button></nav>
+<main>
+
+<section id="harian"><div class="card"><div class="row"><input type="date" id="hd"><select id="hk" class="kelas"></select><button id="hx">⬇ Excel</button></div>
+<div class="grid" id="hs"></div></div><div class="card tw" id="ht"></div></section>
+
+<section id="bulanan" class="hide"><div class="card"><div class="row"><input type="month" id="bm"><select id="bk" class="kelas"></select><button class="pri" id="bgo">Tampilkan</button><button id="bx">⬇ Excel</button></div>
+<p class="mut" id="bi">Rekap dihitung otomatis dari data absensi. Pilih bulan lalu export ke Excel kapan saja.</p></div><div class="card tw" id="bt"></div></section>
+
+<section id="siswa" class="hide">
+<div class="card"><h2 id="ft">Tambah Siswa</h2><form id="sf">
+<div class="row"><input id="sn" placeholder="Nama" required><input id="sk" placeholder="Kelas (mis. XI TKJ 2)" required><input id="sa" type="number" placeholder="No. absen" required></div>
+<div class="row"><input id="su" placeholder="UID kartu RFID (atau pilih dari tap di bawah)"><input id="sw" placeholder="No. WA ortu (08xxx / 628xxx)" required></div>
+<div class="row"><button class="pri">Simpan</button><button type="button" id="sc">Batal</button></div></form>
+<h2>Kartu baru terdeteksi <button id="kr" style="margin-left:6px">↻</button></h2>
+<p class="mut">Suruh siswa tap kartu di alat, lalu klik UID yang muncul untuk mengisi form.</p><div id="kb"></div></div>
+<div class="card"><h2>Import CSV / Excel</h2><p class="mut">Kolom urut: nama, kelas, no_absen, uid_rfid, no_wa_ortu (baris judul boleh ada).</p><input type="file" id="imp" accept=".csv,.xlsx,.xls"></div>
+<div class="card"><div class="row"><select id="fk" class="kelas"></select></div><div class="tw" id="st"></div></div></section>
+
+<section id="set" class="hide"><div class="card"><h2>Batas jam tepat waktu</h2>
+<p class="mut">Absen pada jam ini atau sesudahnya dihitung terlambat.</p>
+<div class="row"><input type="time" id="jb"><button class="pri" id="jsv">Simpan</button></div></div></section>
+</main></div><div id="toast" class="hide"></div>
+
+<script>
+const SUPABASE_URL="https://sqruozwbgpwqihmrlrpe.supabase.co";
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxcnVvendiZ3B3cWlobXJscnBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0OTg4OTQsImV4cCI6MjEwNzA3NDg5NH0.yq9U0PcHkOgo2S0imE9CXHo8TBkK4AAlhgp8VdJhBVI";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const tglWIB=d=>new Date(d).toLocaleDateString("sv-SE",{timeZone:"Asia/Jakarta"});
+const jam=d=>new Date(d).toLocaleTimeString("id-ID",{timeZone:"Asia/Jakarta",hour:"2-digit",minute:"2-digit",hour12:false}).replace(":",".");
+const badge=s=>s=="tepat_waktu"?'<span class="b ok">Tepat waktu</span>':s=="terlambat"?'<span class="b warn">Terlambat</span>':'<span class="b mut">Belum absen</span>';
+let siswa=[],harian=[],belum=[],bRekap=[],bDetail=[],tm;
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.remove("hide");clearTimeout(tm);tm=setTimeout(()=>t.classList.add("hide"),3500)}
+function table(h,rows){return `<table><tr>${h.map(x=>`<th>${x}</th>`).join("")}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")||`<tr><td colspan=${h.length} class="mut">Belum ada data</td></tr>`}</table>`}
+async function semua(q){let o=[],f=0;for(;;){const{data,error}=await q().range(f,f+999);if(error)throw error;o=o.concat(data);if(data.length<1000)return o;f+=1000}}
+function xls(name,sheets){const wb=XLSX.utils.book_new();for(const[n,rows]of sheets)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),n);XLSX.writeFile(wb,name)}
+
+/* ---------- auth ---------- */
+async function init(){const{data}=await sb.auth.getSession();data.session?mulai():($("#lg").classList.remove("hide"))}
+$("#loginf").onsubmit=async e=>{e.preventDefault();const{error}=await sb.auth.signInWithPassword({email:$("#em").value,password:$("#pw").value});error?toast("Login gagal: "+error.message):(location.reload())};
+$("#out").onclick=async()=>{await sb.auth.signOut();location.reload()};
+async function mulai(){$("#app").classList.remove("hide");$("#hd").value=tglWIB(new Date());$("#bm").value=tglWIB(new Date()).slice(0,7);await loadSiswa();loadHarian();loadPengaturan();loadKartu()}
+$("#tabs").onclick=e=>{const t=e.target.dataset.t;if(!t)return;document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b==e.target));document.querySelectorAll("main>section").forEach(s=>s.classList.toggle("hide",s.id!=t))};
+
+/* ---------- siswa ---------- */
+async function loadSiswa(){const{data,error}=await sb.from("siswa").select("*").order("kelas").order("no_absen");if(error)return toast(error.message);siswa=data;
+ const k=[...new Set(siswa.map(s=>s.kelas))].sort();document.querySelectorAll("select.kelas").forEach(el=>{const v=el.value;el.innerHTML='<option value="">Semua kelas</option>'+k.map(x=>`<option>${esc(x)}</option>`).join("");el.value=v});renderSiswa()}
+function renderSiswa(){const k=$("#fk").value;$("#st").innerHTML=table(["No","Nama","Kelas","UID","WA ortu",""],siswa.filter(s=>!k||s.kelas==k).map(s=>[s.no_absen,esc(s.nama),esc(s.kelas),esc(s.uid_rfid||"-"),esc(s.no_wa_ortu),`<button onclick="edit('${s.id}')">Edit</button> <button class="del" onclick="hapus('${s.id}')">Hapus</button>`]))}
+$("#fk").onchange=renderSiswa;
+let editId=null;
+function edit(id){const s=siswa.find(x=>x.id==id);editId=id;$("#ft").textContent="Edit Siswa";$("#sn").value=s.nama;$("#sk").value=s.kelas;$("#sa").value=s.no_absen;$("#su").value=s.uid_rfid||"";$("#sw").value=s.no_wa_ortu;scrollTo(0,0)}
+function reset(){editId=null;$("#ft").textContent="Tambah Siswa";$("#sf").reset()}
+$("#sc").onclick=reset;
+$("#sf").onsubmit=async e=>{e.preventDefault();const r={nama:$("#sn").value.trim(),kelas:$("#sk").value.trim(),no_absen:+$("#sa").value,uid_rfid:$("#su").value.trim().toUpperCase()||null,no_wa_ortu:$("#sw").value.trim()};
+ const q=editId?sb.from("siswa").update(r).eq("id",editId):sb.from("siswa").insert(r);const{error}=await q;if(error)return toast(error.message.includes("unique")?"UID kartu sudah dipakai siswa lain":error.message);
+ if(r.uid_rfid)await sb.from("kartu_baru").delete().eq("uid",r.uid_rfid);toast("Tersimpan");reset();await loadSiswa();loadKartu()};
+async function hapus(id){if(!confirm("Hapus siswa ini beserta riwayat absensinya?"))return;const{error}=await sb.from("siswa").delete().eq("id",id);error?toast(error.message):(toast("Dihapus"),loadSiswa())}
+async function loadKartu(){const{data}=await sb.from("kartu_baru").select("*").order("waktu",{ascending:false}).limit(20);$("#kb").innerHTML=(data||[]).map(k=>`<span class="chip" onclick="$('#su').value='${esc(k.uid)}';scrollTo(0,0)">${esc(k.uid)}</span>`).join("")||'<span class="mut">Belum ada kartu baru.</span>'}
+$("#kr").onclick=loadKartu;
+$("#imp").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const wb=XLSX.read(await f.arrayBuffer());let rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false}).filter(r=>r.length);
+ if(rows[0]&&String(rows[0][0]).toLowerCase().includes("nama"))rows.shift();
+ const data=rows.map(r=>({nama:String(r[0]||"").trim(),kelas:String(r[1]||"").trim(),no_absen:+r[2],uid_rfid:String(r[3]||"").trim().toUpperCase()||null,no_wa_ortu:String(r[4]||"").trim()})).filter(r=>r.nama&&r.kelas&&r.no_absen&&r.no_wa_ortu);
+ if(!data.length)return toast("Tidak ada baris valid");const{error}=await sb.from("siswa").insert(data);error?toast(error.message):(toast(data.length+" siswa diimport"),loadSiswa())}catch(x){toast("File gagal dibaca")}e.target.value=""};
+
+/* ---------- harian ---------- */
+async function loadHarian(){const d=$("#hd").value,k=$("#hk").value;if(!d)return;const a=new Date(d+"T00:00:00+07:00"),b=new Date(a.getTime()+864e5);
+ const{data,error}=await sb.from("absensi").select("waktu,status,menit_telat,siswa_id,siswa(nama,kelas,no_absen)").gte("waktu",a.toISOString()).lt("waktu",b.toISOString()).order("waktu");if(error)return toast(error.message);
+ harian=data.filter(r=>!k||r.siswa?.kelas==k);const ada=new Set(data.map(r=>r.siswa_id));belum=siswa.filter(s=>(!k||s.kelas==k)&&!ada.has(s.id));
+ const t=harian.filter(r=>r.status=="tepat_waktu").length,l=harian.length-t;
+ $("#hs").innerHTML=[["Hadir",harian.length],["Tepat",t],["Terlambat",l],["Belum",belum.length]].map(x=>`<div class="stat"><b>${x[1]}</b>${x[0]}</div>`).join("");
+ $("#ht").innerHTML=table(["Jam","Nama","Kelas","No","Status"],[...harian.map(r=>[jam(r.waktu),esc(r.siswa?.nama),esc(r.siswa?.kelas),r.siswa?.no_absen,badge(r.status)+(r.menit_telat>0?` ${r.menit_telat} mnt`:"")]),...belum.map(s=>["-",esc(s.nama),esc(s.kelas),s.no_absen,badge("")])])}
+$("#hd").onchange=$("#hk").onchange=loadHarian;
+$("#hx").onclick=()=>xls(`Absensi_${$("#hd").value}.xlsx`,[["Harian",[...harian.map(r=>({Jam:jam(r.waktu),Nama:r.siswa?.nama,Kelas:r.siswa?.kelas,"No Absen":r.siswa?.no_absen,Status:r.status=="tepat_waktu"?"Tepat waktu":"Terlambat","Menit Telat":r.menit_telat})),...belum.map(s=>({Jam:"-",Nama:s.nama,Kelas:s.kelas,"No Absen":s.no_absen,Status:"Belum absen","Menit Telat":0}))]]]);
+
+/* ---------- bulanan ---------- */
+async function loadBulan(){const m=$("#bm").value,k=$("#bk").value;if(!m)return;const[y,mo]=m.split("-").map(Number);const a=new Date(`${m}-01T00:00:00+07:00`),b=new Date(`${mo==12?y+1:y}-${String(mo==12?1:mo+1).padStart(2,"0")}-01T00:00:00+07:00`);
+ $("#bt").innerHTML='<p class="mut">Memuat...</p>';
+ let rows;try{rows=await semua(()=>sb.from("absensi").select("siswa_id,waktu,status,menit_telat").gte("waktu",a.toISOString()).lt("waktu",b.toISOString()).order("waktu"))}catch(e){return toast(e.message)}
+ const hariEf=new Set(rows.map(r=>tglWIB(r.waktu))).size,per={};rows.forEach(r=>(per[r.siswa_id]??=[]).push(r));
+ const daftar=siswa.filter(s=>!k||s.kelas==k);
+ bRekap=daftar.map(s=>{const p=per[s.id]||[],hadir=new Set(p.map(r=>tglWIB(r.waktu))).size,telat=p.filter(r=>r.status=="terlambat").length;
+  return{Nama:s.nama,Kelas:s.kelas,"No Absen":s.no_absen,Hadir:hadir,"Tepat Waktu":p.length-telat,Terlambat:telat,Alpa:Math.max(0,hariEf-hadir),"% Hadir":hariEf?Math.round(hadir/hariEf*100):0}});
+ const sm=Object.fromEntries(siswa.map(s=>[s.id,s]));
+ bDetail=rows.filter(r=>sm[r.siswa_id]&&(!k||sm[r.siswa_id].kelas==k)).map(r=>({Tanggal:tglWIB(r.waktu),Jam:jam(r.waktu),Nama:sm[r.siswa_id].nama,Kelas:sm[r.siswa_id].kelas,"No Absen":sm[r.siswa_id].no_absen,Status:r.status=="tepat_waktu"?"Tepat waktu":"Terlambat","Menit Telat":r.menit_telat}));
+ $("#bi").textContent=`Hari efektif (hari ada absensi): ${hariEf}. Alpa = hari efektif dikurangi hari hadir.`;
+ $("#bt").innerHTML=table(["No","Nama","Kelas","Hadir","Tepat","Telat","Alpa","%"],bRekap.map(r=>[r["No Absen"],esc(r.Nama),esc(r.Kelas),r.Hadir,r["Tepat Waktu"],r.Terlambat,r.Alpa,r["% Hadir"]+"%"]))}
+$("#bgo").onclick=loadBulan;
+$("#bx").onclick=()=>bRekap.length?xls(`Rekap_Absensi_${$("#bm").value}.xlsx`,[["Rekap",bRekap],["Detail",bDetail]]):toast("Klik Tampilkan dulu");
+
+/* ---------- pengaturan ---------- */
+async function loadPengaturan(){const{data}=await sb.from("pengaturan").select("jam_batas").eq("id",1).single();if(data)$("#jb").value=data.jam_batas.slice(0,5)}
+$("#jsv").onclick=async()=>{const{error}=await sb.from("pengaturan").update({jam_batas:$("#jb").value+":00"}).eq("id",1);toast(error?error.message:"Jam batas disimpan")};
+init();
+</script></body></html>
